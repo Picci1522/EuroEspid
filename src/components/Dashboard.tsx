@@ -1,6 +1,6 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { TrendingUp, Package, CheckSquare, Clock } from 'lucide-react';
+import { TrendingUp, Package, CheckSquare, Clock, Download } from 'lucide-react';
 
 const mockDadosProdutividade = [
   { hora: '08:00', volumes: 45 },
@@ -14,9 +14,20 @@ const mockDadosProdutividade = [
 export default function Dashboard() {
   return (
     <div className="p-4 max-w-6xl mx-auto font-sans animate-in fade-in duration-500">
-      <header className="mb-8 border-b pb-4">
-        <h1 className="text-2xl font-bold text-slate-800">Painel do Supervisor</h1>
-        <p className="text-slate-500">Visão geral da expedição em tempo real</p>
+      <header className="mb-8 border-b pb-4 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Painel do Supervisor</h1>
+          <p className="text-slate-500">Visão geral da expedição em tempo real</p>
+        </div>
+        
+        {/* Aqui está o nosso novo botão de PDF! */}
+        <button 
+          onClick={() => window.open('/api/relatorios/pdf', '_blank')}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-colors"
+        >
+          <Download size={20} />
+          Exportar Relatório PDF
+        </button>
       </header>
 
       {/* Cards de Indicadores (KPIs) */}
