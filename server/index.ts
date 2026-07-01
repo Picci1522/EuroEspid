@@ -7,7 +7,7 @@ import PDFDocument from 'pdfkit';
 import { Pool } from '@neondatabase/serverless'; 
 import fs from 'fs';
 import path from 'path';
-import axios from 'express'; // Certifique-se de usar o axios importado corretamente
+import axios from 'express'; 
 import axiosStatic from 'axios';
 
 // --- CONFIGURAÇÃO AUTOMÁTICA DO COFRE NFE ---
@@ -70,12 +70,14 @@ app.get('/api/nfe/:chave', async (req, res) => {
       console.log(`🔍 A consultar chave ${chave} automaticamente na API do CofreNFe...`);
       
       try {
-        const respostaCofre = await axiosStatic.get(`https://painel.cofrenfe.com.br/api/v1/nfe/${chave}`, {
+        // Alterado para a URL padrão de integração corporativa do CofreNFe
+        const respostaCofre = await axiosStatic.get(`https://api.cofrenfe.com.br/v1/nfe/${chave}`, {
           headers: { 
             'Authorization': `Api-Key ${COFRENFE_API_KEY}`,
             'X-Vinculo-ID': VINCULO_ID,
             'Content-Type': 'application/json'
-          }
+          },
+          timeout: 15000 // Evita que a requisição fique travada no plano gratuito
         });
 
         const dadosNfe = respostaCofre.data;
@@ -108,7 +110,7 @@ app.get('/api/nfe/:chave', async (req, res) => {
           notaResult = await pool.query('SELECT * FROM notas_fiscais WHERE chave = $1', [chave]);
         }
       } catch (err) {
-        console.error("⚠️ Nota não encontrada ou erro no barramento do CofreNFe:", err.message);
+        console.error("⚠️ Erro ou Nota não encontrada no barramento do CofreNFe:", err.message);
       }
     }
 
