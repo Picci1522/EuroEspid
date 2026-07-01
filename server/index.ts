@@ -73,7 +73,7 @@ app.get('/api/nfe/:chave', async (req, res) => {
         // Alterado para a URL padrão de integração corporativa do CofreNFe
         const respostaCofre = await axiosStatic.get(`https://painel.cofrenfe.com.br/api/nfe/${chave}`, {
           headers: { 
-            'Authorization': `Api-Key ${COFRENFE_API_KEY}`,
+            'Authorization': `Bearer ${COFRENFE_API_KEY}`,
             'X-Vinculo-ID': VINCULO_ID,
             'Content-Type': 'application/json'
           },
