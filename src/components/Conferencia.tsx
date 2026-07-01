@@ -56,7 +56,7 @@ export default function Conferencia() {
     setCarregando(true);
 
     try {
-      const resposta = await fetch(`/api/nfe/${inputChaveAlvo}`);
+      const resposta = await fetch(`https://euroespid.onrender.com/api/nfe/${inputChaveAlvo}`);
       
       if (resposta.ok) {
         await iniciarConferencia(inputChaveAlvo);
@@ -163,7 +163,7 @@ export default function Conferencia() {
     if (!numNota || !destinatario || !transportadora) return;
 
     try {
-      const resposta = await fetch('/api/nfe/salvar-manual', {
+      const resposta = await fetch('https://euroespid.onrender.com/api/nfe/salvar-manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
