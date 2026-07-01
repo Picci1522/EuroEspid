@@ -70,14 +70,14 @@ app.get('/api/nfe/:chave', async (req, res) => {
       console.log(`🔍 A consultar chave ${chave} automaticamente na API do CofreNFe...`);
       
       try {
-        // Alterado para a URL padrão de integração corporativa do CofreNFe
+        // Endereço oficial de integração via Barramento do CofreNFe
         const respostaCofre = await axiosStatic.get(`https://painel.cofrenfe.com.br/api/nfe/${chave}`, {
           headers: { 
             'Authorization': `Bearer ${COFRENFE_API_KEY}`,
             'X-Vinculo-ID': VINCULO_ID,
             'Content-Type': 'application/json'
           },
-          timeout: 15000 // Evita que a requisição fique travada no plano gratuito
+          timeout: 10000 // Limite de 10 segundos para não travar a rota
         });
 
         const dadosNfe = respostaCofre.data;
