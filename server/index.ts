@@ -7,12 +7,11 @@ import PDFDocument from 'pdfkit';
 import { Pool } from '@neondatabase/serverless'; 
 import fs from 'fs';
 import path from 'path';
-import axios from 'express'; 
 import axiosStatic from 'axios';
 
 // --- CONFIGURAÇÃO AUTOMÁTICA DO COFRE NFE ---
 const COFRENFE_API_KEY = "ck_3f58df75c98e5ab540a0f3bcb728c777c4f111e48299cc4564efdf98488be2ae";
-const VINCULO_ID = "E73702771000102"; // O seu CNPJ mapeado com o prefixo 'E'
+const VINCULO_ID = "73702771000102"; // CNPJ Numérico Limpo da Eurotec (sem o prefixo 'E')
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -109,8 +108,8 @@ app.get('/api/nfe/:chave', async (req, res) => {
           // Atualiza o resultado local após a inserção bem-sucedida
           notaResult = await pool.query('SELECT * FROM notas_fiscais WHERE chave = $1', [chave]);
         }
-      } catch (err) {
-        console.error("⚠️ Erro ou Nota não encontrada no barramento do CofreNFe:", err.message);
+      } catch (err: any) {
+        console.error("⚠️ Erro no barramento do CofreNFe:", err.response?.data || err.message);
       }
     }
 
