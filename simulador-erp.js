@@ -42,7 +42,7 @@ const notasFiscais = [
   async function enviarNotas() {
     for (const nota of notasFiscais) {
       try {
-        const resposta = await fetch('http://localhost:3001/api/webhook/erp', {
+        const resposta = await fetch('https://euroespid.onrender.com/api/webhook/erp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(nota)

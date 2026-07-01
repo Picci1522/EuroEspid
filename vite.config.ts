@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       // Toda requisição para /api será redirecionada internamente para o nosso Back-end
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'https://euroespid.onrender.com',
         changeOrigin: true,
       }
     }
