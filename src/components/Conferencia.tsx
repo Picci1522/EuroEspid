@@ -45,7 +45,7 @@ export default function Conferencia() {
     }
   };
 
-  // 🔥 BUSCA DIRETA NO COFRENFE PELO NAVEGADOR (Bypass do Render) 🔥
+  // 🔥 BUSCA NO COFRENFE USANDO PROXY PARA ENGANAR O BLOQUEIO DE CORS DO NAVEGADOR 🔥
   const handleBuscarNota = async (inputChaveAlvo: string) => {
     if (!inputChaveAlvo) return;
     
@@ -53,8 +53,9 @@ export default function Conferencia() {
     setCarregando(true);
 
     try {
-      // 1. O NAVEGADOR BUSCA DIRETO NA API (Usando variáveis do .env)
-      const respostaCofre = await fetch(`https://painel.cofrenfe.com.br/api/nfe/${inputChaveAlvo}`, {
+      // 1. O NAVEGADOR BUSCA USANDO UM PROXY PARA ENGANAR O CORS
+      const urlAlvo = encodeURIComponent(`https://painel.cofrenfe.com.br/api/nfe/${inputChaveAlvo}`);
+      const respostaCofre = await fetch(`https://corsproxy.io/?${urlAlvo}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_COFRENFE_API_KEY}`,
@@ -69,7 +70,7 @@ export default function Conferencia() {
 
       const dadosNfe = await respostaCofre.json();
 
-      // 2. EXTRAI OS DADOS JSON IGUAL AO SEU BACKEND
+      // 2. EXTRAI OS DADOS JSON
       const numeroNotaExtraido = dadosNfe.numero ? `NF-${parseInt(dadosNfe.numero, 10)}` : `NF-${inputChaveAlvo.substring(25, 34)}`;
       const destinatarioExtraido = dadosNfe.destinatario?.nome?.toUpperCase() || "CLIENTE EXTERNO";
       const transportadoraExtraida = dadosNfe.transportadora?.nome?.toUpperCase() || "RETIRA / CLIENTE";
