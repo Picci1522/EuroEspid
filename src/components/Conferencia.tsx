@@ -16,7 +16,6 @@ export default function Conferencia() {
   const [erroNota, setErroNota] = useState(false);
   const [carregando, setCarregando] = useState(false);
 
-  // Estados do formulário manual/XML
   const [numNota, setNumNota] = useState('');
   const [destinatario, setDestinatario] = useState('');
   const [transportadora, setTransportadora] = useState('');
@@ -26,7 +25,6 @@ export default function Conferencia() {
 
   const [quantidadesDigitadas, setQuantidadesDigitadas] = useState<Record<string, string>>({});
 
-  // Puxamos a função 'limparNota' do seu store para conseguir resetar a pesquisa
   const { notaAtual, produtos, iniciarConferencia, limparNota } = useExpedicaoStore();
 
   const resetarFormularioManual = () => {
@@ -36,19 +34,18 @@ export default function Conferencia() {
     setItensManuais([{ codigo: '', descricao: '', lote: '', qtdEsperada: '' }]);
   };
 
-  // BOTÃO INTELIGENTE DE VOLTAR / NOVA PESQUISA
   const handleVoltarAoInicio = () => {
     setErroNota(false);
     setInputChave('');
     resetarFormularioManual();
     if (typeof limparNota === 'function') {
-      limparNota(); // Reseta o estado global se a função existir
+      limparNota(); 
     } else {
-      // Força um recarregamento rápido da página caso o store não tenha o resetter
       window.location.reload();
     }
   };
 
+  // 🔥 BUSCA DIRETA NO COFRENFE PELO NAVEGADOR (Bypass do Render) 🔥
   const handleBuscarNota = async (inputChaveAlvo: string) => {
     if (!inputChaveAlvo) return;
     
@@ -56,19 +53,70 @@ export default function Conferencia() {
     setCarregando(true);
 
     try {
-      const resposta = await fetch(`https://euroespid.onrender.com/api/nfe/${inputChaveAlvo}`);
+      // 1. O NAVEGADOR BUSCA DIRETO NA API (Usando variáveis do .env)
+      const respostaCofre = await fetch(`https://painel.cofrenfe.com.br/api/nfe/${inputChaveAlvo}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_COFRENFE_API_KEY}`,
+          'X-Vinculo-ID': import.meta.env.VITE_VINCULO_ID,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!respostaCofre.ok) {
+        throw new Error('Nota não encontrada ou bloqueada no CofreNFe.');
+      }
+
+      const dadosNfe = await respostaCofre.json();
+
+      // 2. EXTRAI OS DADOS JSON IGUAL AO SEU BACKEND
+      const numeroNotaExtraido = dadosNfe.numero ? `NF-${parseInt(dadosNfe.numero, 10)}` : `NF-${inputChaveAlvo.substring(25, 34)}`;
+      const destinatarioExtraido = dadosNfe.destinatario?.nome?.toUpperCase() || "CLIENTE EXTERNO";
+      const transportadoraExtraida = dadosNfe.transportadora?.nome?.toUpperCase() || "RETIRA / CLIENTE";
       
-      if (resposta.ok) {
+      const listaProdutosMapeados: ItemManual[] = [];
+      if (dadosNfe.itens && dadosNfe.itens.length > 0) {
+        dadosNfe.itens.forEach((item: any) => {
+          listaProdutosMapeados.push({
+            codigo: item.codigo || "",
+            descricao: item.descricao?.toUpperCase() || "",
+            lote: item.lote?.toUpperCase() || "",
+            qtdEsperada: Math.ceil(parseFloat(item.quantidade || "1")).toString()
+          });
+        });
+      }
+
+      if (listaProdutosMapeados.length === 0) {
+         throw new Error("Nenhum produto encontrado na nota.");
+      }
+
+      // 3. ENVIA OS DADOS MASTIGADOS PARA O RENDER SALVAR NO BANCO
+      const respostaRender = await fetch('https://euroespid.onrender.com/api/nfe/salvar-manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chave: inputChaveAlvo,
+          numero: numeroNotaExtraido,
+          destinatario: destinatarioExtraido,
+          transportadora: transportadoraExtraida,
+          produtos: listaProdutosMapeados
+        })
+      });
+
+      if (respostaRender.ok) {
+        setErroNota(false);
         await iniciarConferencia(inputChaveAlvo);
       } else {
-        setErroNota(true);
-        if (inputChaveAlvo.length === 44) {
-          const nfExtraida = parseInt(inputChaveAlvo.substring(25, 34), 10).toString();
-          setNumNota(`NF-${nfExtraida}`);
-        }
+         throw new Error("Erro ao salvar no banco da Eurotec.");
       }
+
     } catch (err) {
+      console.error('Erro na ponte direta:', err);
       setErroNota(true);
+      if (inputChaveAlvo.length === 44) {
+        const nfExtraida = parseInt(inputChaveAlvo.substring(25, 34), 10).toString();
+        setNumNota(`NF-${nfExtraida}`);
+      }
     } finally {
       setCarregando(false);
     }
@@ -80,7 +128,6 @@ export default function Conferencia() {
     handleBuscarNota(textoLido);
   };
 
-  // LEITURA DO XML ROBUSTA (Busca lote em múltiplos lugares possíveis)
   const handleProcessarXML = (e: React.ChangeEvent<HTMLInputElement>) => {
     const arquivo = e.target.files?.[0];
     if (!arquivo) return;
@@ -111,11 +158,9 @@ export default function Conferencia() {
             const descricao = prodTag.getElementsByTagName("xProd")[0]?.textContent || "";
             const qCom = prodTag.getElementsByTagName("qCom")[0]?.textContent || "1";
             
-            // Tentativa 1 de achar Lote: Tag padrão <rastro>
             const rastroTag = tagsDet[i].getElementsByTagName("rastro")[0];
             let loteDetectado = rastroTag ? rastroTag.getElementsByTagName("nLote")[0]?.textContent || "" : "";
 
-            // Tentativa 2 de achar Lote: Procurar nas informações adicionais do produto
             if (!loteDetectado) {
               const infAdProd = tagsDet[i].getElementsByTagName("infAdProd")[0]?.textContent || "";
               const matchLote = infAdProd.match(/LOTE:\s*([A-Za-z0-9\-]+)/i);
@@ -125,7 +170,7 @@ export default function Conferencia() {
             listaProdutosMapeados.push({
               codigo,
               descricao: descricao.toUpperCase(),
-              lote: loteDetectado.toUpperCase(), // Se não achar nada, vem em branco pro operador ditar
+              lote: loteDetectado.toUpperCase(), 
               qtdEsperada: Math.ceil(parseFloat(qCom)).toString()
             });
           }
@@ -192,7 +237,7 @@ export default function Conferencia() {
   const handleImprimirEtiquetaProduto = (prodId: string, qtdPadrao: number) => {
     const qtdCustomizada = quantidadesDigitadas[prodId];
     const qtdFinal = qtdCustomizada !== undefined && qtdCustomizada !== '' ? qtdCustomizada : qtdPadrao;
-    window.open(`/api/etiqueta/produto/${prodId}?qtd=${qtdFinal}`, '_blank');
+    window.open(`https://euroespid.onrender.com/api/etiqueta/produto/${prodId}?qtd=${qtdFinal}`, '_blank');
   };
 
   return (
@@ -203,7 +248,6 @@ export default function Conferencia() {
           <h1 className="text-2xl font-bold text-slate-800">Expedição Indústria</h1>
         </div>
 
-        {/* BOTÃO MÁGICO DE RETORNAR/NOVA PESQUISA (Aparece se tiver nota carregada ou em modo manual) */}
         {(notaAtual || erroNota) && (
           <button 
             onClick={handleVoltarAoInicio}
@@ -249,7 +293,6 @@ export default function Conferencia() {
         </div>
       )}
 
-      {/* GERADOR MANUAL / IMPORTADOR DE XML */}
       {!notaAtual && erroNota && (
         <div className="bg-white p-6 rounded-xl shadow-md border border-amber-200 space-y-6 animate-in fade-in duration-300">
           <div className="border-b pb-3 border-amber-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -328,7 +371,6 @@ export default function Conferencia() {
         </div>
       )}
 
-      {/* EXIBIÇÃO DOS PRODUTOS DA NOTA */}
       {notaAtual && (
         <div className="space-y-4">
           <div className="bg-slate-100 p-4 rounded-lg border border-slate-200 flex justify-between items-center shadow-inner">
