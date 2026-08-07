@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// SEGURANÇA / RBAC
+// ============================================================
+
+enum PerfilUsuario {
+  ADMINISTRADOR
+  EXPEDICAO
+  QUALIDADE
+  CONSULTA
+}
+
+model Usuario {
+  id           String        @id @default(uuid())
+  nome         String
+  email        String        @unique
+  senhaHash    String
+  perfil       PerfilUsuario @default(CONSULTA)
+  ativo        Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  auditorias   Auditoria[]
+
+  @@map("usuarios")
+}
+
+// ============================================================
+// CADASTROS BASE
+// ============================================================
+
+model Cliente {
+  id        String   @id @default(uuid())
+  nome      String
+  cnpj      String   @unique
+  createdAt DateTime @default(now())
+
+  nfes      Nfe[]
+  pallets   Pallet[]
+
+  @@index([nome], map("idx_cliente_nome")) // suporta busca "cliente" pedida no doc
+  @@map("clientes")
+}
+
+model Transportadora {
+  id        String   @id @default(uuid())
+  nome      String
+  cnpj      String   @unique
+  createdAt DateTime @default(now())
+
+  nfes      Nfe[]
+
+  @@map("transportadoras")
+}
+
+model Produto {
+  id            String       @id @default(uuid())
+  codigoProduto String       @unique @map("codigo_produto")
+  descricao     String
+  createdAt     DateTime     @default(now())
+
+  nfeItens      NfeItem[]
+  lotes         Lote[]
+  palletItens   PalletItem[]
+
+  @@index([codigoProduto], map("idx_produto_codigo"))
+  @@map("produtos")
+}
+
+// ============================================================
+// NF-e
+// ============================================================
+
+enum StatusNfe {
+  PENDENTE
+  IMPORTADA
+  ERRO
+  CANCELADA
+}
+
+model Nfe {
+  id               String    @id @default(uuid())
+  chaveNfe         String    @unique @map("chave_nfe")
+  numeroNf         String    @map("numero_nf")
+  clienteId        String
+  transportadoraId String?
+  dataEmissao      DateTime? @map("data_emissao")
+  status           StatusNfe @default(PENDENTE)
+  origem           String    // xml_local | focus_nfe | nuvem_fiscal | tecnospeed | sefaz
+  xmlRaw           String?   @map("xml_raw")
+  createdAt        DateTime  @default(now())
+
+  cliente          Cliente         @relation(fields: [clienteId], references: [id])
+  transportadora   Transportadora? @relation(fields: [transportadoraId], references: [id])
+  itens            NfeItem[]
+  pallets          Pallet[]
+
+  @@index([chaveNfe], map("idx_nfe_chave"))
+  @@index([numeroNf], map("idx_nfe_numero"))
+  @@map("nfe")
+}
+
+model NfeItem {
+  id             String    @id @default(uuid())
+  nfeId          String
+  produtoId      String
+  codigoProduto  String    @map("codigo_produto")
+  lote           String
+  quantidade     Decimal   @db.Decimal(14, 4)
+  unidade        String
+  fabricacao     DateTime? @map("data_fabricacao")
+  validade       DateTime? @map("data_validade")
+
+  nfe            Nfe     @relation(fields: [nfeId], references: [id], onDelete: Cascade)
+  produto        Produto @relation(fields: [produtoId], references: [id])
+
+  @@index([lote], map("idx_nfe_item_lote"))
+  @@index([codigoProduto], map("idx_nfe_item_codigo_produto"))
+  @@index([validade], map("idx_nfe_item_validade"))
+  @@map("nfe_items")
+}
+
+model Lote {
+  id            String    @id @default(uuid())
+  lote          String
+  produtoId     String
+  fabricacao    DateTime? @map("data_fabricacao")
+  validade      DateTime? @map("data_validade")
+  createdAt     DateTime  @default(now())
+
+  produto       Produto @relation(fields: [produtoId], references: [id])
+
+  @@unique([produtoId, lote], map("uniq_lote_por_produto")) // FEFO precisa disso ser estável
+  @@index([lote], map("idx_lote_lote"))
+  @@index([validade], map("idx_lote_validade"))
+  @@map("lotes")
+}
+
+// ============================================================
+// PALLETS / EXPEDIÇÃO
+// ============================================================
+
+enum StatusPallet {
+  MONTADO
+  EXPEDIDO
+  CANCELADO
+}
+
+model Pallet {
+  id              String       @id @default(uuid())
+  nfeId           String
+  clienteId       String
+  status          StatusPallet @default(MONTADO)
+  dataExpedicao   DateTime?    @map("data_expedicao")
+  createdAt       DateTime     @default(now())
+
+  nfe             Nfe          @relation(fields: [nfeId], references: [id])
+  cliente         Cliente      @relation(fields: [clienteId], references: [id])
+  itens           PalletItem[]
+  etiquetas       Etiqueta[]
+
+  @@map("pallets")
+}
+
+model PalletItem {
+  id          String  @id @default(uuid())
+  palletId    String
+  produtoId   String
+  lote        String
+  quantidade  Decimal @db.Decimal(14, 4)
+
+  pallet      Pallet  @relation(fields: [palletId], references: [id], onDelete: Cascade)
+  produto     Produto @relation(fields: [produtoId], references: [id])
+
+  @@index([lote], map("idx_pallet_item_lote"))
+  @@map("pallet_items")
+}
+
+// ============================================================
+// ETIQUETAS
+// ============================================================
+
+enum FormatoEtiqueta {
+  F100X150
+  F100X100
+  A4
+}
+
+model Etiqueta {
+  id         String          @id @default(uuid())
+  palletId   String
+  formato    FormatoEtiqueta
+  qrPayload  String          @map("qr_payload") // NF, cliente, produto, lote, validade, pallet
+  geradaEm   DateTime        @default(now()) @map("gerada_em")
+
+  pallet     Pallet @relation(fields: [palletId], references: [id], onDelete: Cascade)
+
+  @@map("etiquetas")
+}
+
+// ============================================================
+// AUDITORIA
+// ============================================================
+
+model Auditoria {
+  id         String   @id @default(uuid())
+  usuarioId  String?
+  ip         String
+  data       DateTime @default(now())
+  acao       String
+  antes      Json?
+  depois     Json?
+
+  usuario    Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("auditoria")
+}
