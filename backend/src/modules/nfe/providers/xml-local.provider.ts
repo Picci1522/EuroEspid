@@ -21,7 +21,14 @@ export class XmlLocalProvider implements INfeProvider {
   }
 
   parseXml(xmlContent: string): NfeConsultaResult {
-    const parser = new XMLParser({ ignoreAttributes: false });
+    // parseTagValue/parseAttributeValue: false evita que o parser converta
+    // sozinho valores como CNPJ, número de NF ou chave de acesso para número
+    // (o que quebra o Prisma, que espera String nesses campos).
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      parseTagValue: false,
+      parseAttributeValue: false,
+    });
     const parsed = parser.parse(xmlContent);
 
     const nfe = parsed?.nfeProc?.NFe?.infNFe ?? parsed?.NFe?.infNFe;

@@ -46,7 +46,7 @@ model Cliente {
   nfes      Nfe[]
   pallets   Pallet[]
 
-  @@index([nome], map("idx_cliente_nome")) // suporta busca "cliente" pedida no doc
+  @@index([nome], map: "idx_cliente_nome") // suporta busca "cliente" pedida no doc
   @@map("clientes")
 }
 
@@ -71,7 +71,7 @@ model Produto {
   lotes         Lote[]
   palletItens   PalletItem[]
 
-  @@index([codigoProduto], map("idx_produto_codigo"))
+  @@index([codigoProduto], map: "idx_produto_codigo")
   @@map("produtos")
 }
 
@@ -103,8 +103,8 @@ model Nfe {
   itens            NfeItem[]
   pallets          Pallet[]
 
-  @@index([chaveNfe], map("idx_nfe_chave"))
-  @@index([numeroNf], map("idx_nfe_numero"))
+  @@index([chaveNfe], map: "idx_nfe_chave")
+  @@index([numeroNf], map: "idx_nfe_numero")
   @@map("nfe")
 }
 
@@ -122,9 +122,9 @@ model NfeItem {
   nfe            Nfe     @relation(fields: [nfeId], references: [id], onDelete: Cascade)
   produto        Produto @relation(fields: [produtoId], references: [id])
 
-  @@index([lote], map("idx_nfe_item_lote"))
-  @@index([codigoProduto], map("idx_nfe_item_codigo_produto"))
-  @@index([validade], map("idx_nfe_item_validade"))
+  @@index([lote], map: "idx_nfe_item_lote")
+  @@index([codigoProduto], map: "idx_nfe_item_codigo_produto")
+  @@index([validade], map: "idx_nfe_item_validade")
   @@map("nfe_items")
 }
 
@@ -138,9 +138,9 @@ model Lote {
 
   produto       Produto @relation(fields: [produtoId], references: [id])
 
-  @@unique([produtoId, lote], map("uniq_lote_por_produto")) // FEFO precisa disso ser estável
-  @@index([lote], map("idx_lote_lote"))
-  @@index([validade], map("idx_lote_validade"))
+  @@unique([produtoId, lote], map: "uniq_lote_por_produto") // FEFO precisa disso ser estável
+  @@index([lote], map: "idx_lote_lote")
+  @@index([validade], map: "idx_lote_validade")
   @@map("lotes")
 }
 
@@ -180,7 +180,7 @@ model PalletItem {
   pallet      Pallet  @relation(fields: [palletId], references: [id], onDelete: Cascade)
   produto     Produto @relation(fields: [produtoId], references: [id])
 
-  @@index([lote], map("idx_pallet_item_lote"))
+  @@index([lote], map: "idx_pallet_item_lote")
   @@map("pallet_items")
 }
 
