@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc>
+  <NFe>
+    <infNFe Id="NFe35240112345678000199550010000009991234567891" versao="4.00">
+      <ide>
+        <nNF>999</nNF>
+        <dhEmi>2026-08-10T10:00:00-03:00</dhEmi>
+      </ide>
+      <dest>
+        <xNome>Cliente Teste LTDA</xNome>
+        <CNPJ>12345678000199</CNPJ>
+      </dest>
+      <det>
+        <prod>
+          <cProd>PROD001</cProd>
+          <xProd>Racao Bovina 25kg</xProd>
+          <qCom>85</qCom>
+          <uCom>SC</uCom>
+          <rastro>
+            <nLote>LOTE2026B</nLote>
+            <dFab>2026-07-15</dFab>
+            <dVal>2027-07-15</dVal>
+          </rastro>
+        </prod>
+      </det>
+    </infNFe>
+  </NFe>
+</nfeProc>

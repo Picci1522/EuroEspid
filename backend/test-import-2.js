@@ -1,5 +1,5 @@
 const fs = require('fs');
-const xml = fs.readFileSync(__dirname + '/readFileSync', 'utf8');
+const xml = fs.readFileSync(__dirname + '/test-nfe-2.xml', 'utf8');
 
 fetch('http://localhost:3000/nfe/xml', {
   method: 'POST',
